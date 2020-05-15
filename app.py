@@ -2,7 +2,7 @@ import json
 import random
 from flask import Flask, render_template, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, IntegerField, HiddenField
+from wtforms import StringField, RadioField, HiddenField
 from wtforms.validators import InputRequired, Length
 from data import goals, week_days
 
@@ -20,24 +20,21 @@ def write_json(data, file):
         json.dump(data, json_file, ensure_ascii=False)
 
 
-
-
-
 class RequestForm(FlaskForm):
     name = StringField('Вас зовут', [InputRequired()])
     phone = StringField('Ваш телефон', [Length(min=5)])
     goals = RadioField('goals', choices=[("travel", "⛱ Для путешествий"),
-                                       ("study", "🏫 Для учебы"),
-                                       ("work", "🏢 Для работы"),
-                                       ("relocate", "🚜 Для переезда"),
+                                         ("study", "🏫 Для учебы"),
+                                         ("work", "🏢 Для работы"),
+                                         ("relocate", "🚜 Для переезда"),
                                          ("coding", "🙈 Для кодинга")],
-                                        default="travel")
+                       default="travel")
 
     timing = RadioField('timing', choices=[("1-2", "1 - 2 часа в неделю"),
                                            ("3-5", "3-5 часов в неделю"),
                                            ("5-7", "5-7 часов в неделю"),
                                            ("7-10", "7-10 часов в неделю")],
-                                           default="1-2")
+                        default="1-2")
 
 
 class BookingForm(RequestForm):
@@ -51,6 +48,12 @@ def index_render():
     teachers = open_json('data.json')
     random.shuffle(teachers)
     return render_template('index.html', teachers=teachers[:6], goals=goals)
+
+
+@app.route('/all/')
+def all_render():
+    teachers = open_json('data.json')
+    return render_template('index.html', teachers=teachers, goals=goals)
 
 
 @app.route('/goals/<goal>/')
@@ -80,7 +83,6 @@ def request_render():
 
 @app.route('/request_done/', methods=['GET', 'POST'])
 def request_done_render():
-
     if request.method == 'POST':
         form = RequestForm()
 
@@ -112,12 +114,12 @@ def booking_render(id, day, time):
                                week_days=week_days,
                                time=time.replace('-', ':'))
 
-    else: return "В этом слоте занято"
+    else:
+        return "В этом слоте занято"
 
 
-@app.route('/booking_done/', methods = ["POST", "GET"])
+@app.route('/booking_done/', methods=["POST", "GET"])
 def booking_done_render():
-
     if request.method == "POST":
         form = BookingForm()
 
