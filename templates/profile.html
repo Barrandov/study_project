@@ -4,23 +4,23 @@
     <div class="card my-4 mx-auto">
       <div class="card-body m-2 m-md-4">
         <article class="row">
-          <div class="col-5"><img src="{{ teacher[0].picture }}" class="img-fluid" alt=""></div>
+          <div class="col-5"><img src="{{ teacher.picture }}" class="img-fluid" alt=""></div>
           <div class="col-7">
 
             <section class="teacher=info">
 
-              <h1 class="h2">{{ teacher[0].name }}</h1>
+              <h1 class="h2">{{ teacher.name }}</h1>
               <p>
 
-                {% for badge in teacher[0].goals %}
+                {% for badge in teacher.goals %}
                   <span class="badge badge-secondary mr-2" style="padding: 5px">
                 {{ goals[badge] }}
                   </span>
                 {% endfor %}
 
               </p>
-                <p>Рейтинг: {{ teacher[0].rating }} Ставка: {{ teacher[0].price }} / час</p>
-                <p>{{ teacher[0].about }}</p>
+                <p>Рейтинг: {{ teacher.rating }} Ставка: {{ teacher.price }} / час</p>
+                <p>{{ teacher.about }}</p>
             </section>
 
             <section class="available">
@@ -34,7 +34,7 @@
 
               {% for slot, avb in value.items() %}
               {% if avb %}
-                <a href="/booking/{{teacher[0].id}}/{{ key }}/{{ slot | replace(':','-') }}"
+                <a href="/booking/{{teacher.id}}/{{ key }}/{{ slot | replace(':','-') }}"
                    class="btn btn-outline-success mr-2"
                    style="margin-top: 8px">{{ slot }} свободно</a>
               {% endif %}
