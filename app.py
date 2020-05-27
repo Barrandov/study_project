@@ -1,14 +1,14 @@
 import json
 import random
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 from flask_wtf import FlaskForm
 from wtforms import StringField, RadioField, HiddenField
 from wtforms.validators import InputRequired, Length
 from flask_sqlalchemy import SQLAlchemy
 
 from data import goals, week_days
-from dbconvert import convert
+
 
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
@@ -17,6 +17,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+@app.errorhandler(404)
+def render_not_found(error): return "Ничего не нашлось! Вот неудача, отправляйтесь на главную!"
 
 teacher_goals_association = db.Table(
  'teacher_goals',
@@ -35,6 +37,7 @@ class Teachers(db.Model):
     price = db.Column('Price', db.Integer)
     schedule = db.relationship('Schedule',  backref='teacher')
     goals = db.relationship('Goals', secondary=teacher_goals_association, backref='teacher')
+    booking = db.relationship('Booking', backref='teacher')
 
 
 class Goals(db.Model):
@@ -58,7 +61,7 @@ class Booking(db.Model):
     name = db.Column('Name', db.String)
     phone = db.Column('Phone', db.String)
     week_day = db.Column('Week Day', db.String)
-    timing = db.Column('Timing', db.Date)
+    timing = db.Column('Timing', db.String)
     teacher_id = db.Column('Teacher ID', db.Integer, db.ForeignKey('teachers.ID', ondelete='CASCADE'))
 
 
@@ -111,16 +114,6 @@ def convert():
 #convert()
 
 
-def open_json(file):
-    with open(file, 'r') as json_file:
-        return json.load(json_file)
-
-
-def write_json(data, file):
-    with open(file, 'w', encoding='utf8') as json_file:
-        json.dump(data, json_file, ensure_ascii=False)
-
-
 class RequestForm(FlaskForm):
     name = StringField('Вас зовут', [InputRequired()])
     phone = StringField('Ваш телефон', [Length(min=5)])
@@ -164,26 +157,17 @@ def goals_render(goal):
 
 @app.route('/profile/<int:id>')
 def profiles_render(id):
-    teachers = open_json('data.json')
-    #teacher_with_id = [i for i in teachers if i['id'] == id]
-    #teacher_slots = teacher_with_id[0]['free']
+    teacher_slots = db.session.query(Schedule).filter(Schedule.teacher_id == id).all()
+    slots = {'mon': [], 'tue': [], 'wed': [], 'thu': [], 'fri': [], 'sat': [], 'sun': []}
 
-    teacher_with_id = db.session.query(Teachers).filter(Teachers.id == id).first()
-    teacher_slots = db.session.query(Schedule).filter(Schedule.teacher_id == id)
+    teacher_id = db.session.query(Teachers).get_or_404(id)
 
-    ts = db.session.query(Schedule).filter(Schedule.teacher_id == id).group_by(Schedule.week_day).all()
-    for i in ts:
-        print(i.week_day)
-        print(i.timing)
-
-
-
-
-
+    for i in teacher_slots:
+        slots[i.week_day].append(i.timing)
 
     return render_template('profile.html',
-                           teacher=teacher_with_id,
-                           teacher_slots=teacher_slots,
+                           teacher=teacher_id,
+                           teacher_slots=slots,
                            goals=goals,
                            week_days=week_days)
 
@@ -199,15 +183,19 @@ def request_done_render():
     if request.method == 'POST':
         form = RequestForm()
 
-        data = open_json('request.json')
-        request_data = {'id': len(data),
-                        'name': form.name.data,
+        request_data = {'name': form.name.data,
                         'phone': form.phone.data,
                         'goal': form.goals.data,
                         'timing': form.timing.data
                         }
-        data.append(request_data)
-        write_json(data, 'request.json')
+        request_db = RequestLesson(name=request_data['name'],
+                                   phone=request_data['phone'],
+                                   goal=request_data['goal'],
+                                   timing=request_data['timing']
+                                   )
+
+        db.session.add(request_db)
+        db.session.commit()
 
         return render_template('request_done.html', request_data=request_data, goals=goals)
     else:
@@ -216,12 +204,19 @@ def request_done_render():
 
 @app.route('/booking/<int:id>/<day>/<time>/')
 def booking_render(id, day, time):
-    teacher = open_json('data.json')[id]
 
-    if teacher['free'][day][time.replace('-', ':')]:
+    teacher_is_free = db.session.query(Schedule)\
+        .filter(Schedule.teacher_id == id).\
+        filter(Schedule.week_day == day).\
+        filter(Schedule.timing == time.replace('-', ':')).\
+        first()
+
+    teacher_id = db.session.query(Teachers).get(id)
+
+    if teacher_is_free:
         form = BookingForm()
         return render_template('booking.html',
-                               teacher=teacher,
+                               teacher=teacher_id,
                                form=form,
                                day=day,
                                week_days=week_days,
@@ -236,29 +231,52 @@ def booking_done_render():
     if request.method == "POST":
         form = BookingForm()
 
-        booking_json = open_json('booking.json')
-        request_json = open_json('data.json')
-
-        booking_data = {'id': len(booking_json),
-                        'name': form.name.data,
+        booking_data = {'name': form.name.data,
                         'phone': form.phone.data,
                         'teacher_id': form.teacher_id.data,
                         'day': form.day_hide.data,
                         'timing': form.timing_hide.data
                         }
 
-        booking_json.append(booking_data)
+        teacher_time_delete = db.session.query(Schedule) \
+            .filter(Schedule.teacher_id == booking_data['teacher_id']). \
+            filter(Schedule.week_day == booking_data['day']). \
+            filter(Schedule.timing == booking_data['timing'].replace('-', ':')). \
+            first()
 
-        for i in request_json:
-            if i['id'] == int(booking_data['teacher_id']):
-                i['free'][booking_data['day']][booking_data['timing']] = False
+        booking_add = Booking(name=booking_data['name'],
+                              phone=booking_data['phone'],
+                              week_day=booking_data['day'],
+                              timing=booking_data['timing'],
+                              teacher_id=booking_data['teacher_id']
+                              )
 
-        write_json(request_json, 'data.json')
-        write_json(booking_json, 'booking.json')
+        db.session.delete(teacher_time_delete)
+        db.session.add(booking_add)
+        db.session.commit()
 
         return render_template('booking_done.html', booking_data=booking_data, week_days=week_days)
 
     return "Нет тут ничего"
+
+
+@app.route('/list/')
+def list_render():
+    booking = db.session.query(Booking).all()
+    booking_list = []
+    for i in booking:
+        booking_list.append((i.id, i.name, i.phone, week_days[i.week_day], i.timing, i.teacher.name))
+    return render_template('list.html', goals=goals, books=booking_list)
+
+
+@app.route('/list/delete/<int:id>/')
+def list_delete_render(id):
+    booking = db.session.query(Booking).filter(Booking.id == id).first()
+    back_time = Schedule(week_day=booking.week_day, timing=booking.timing, teacher_id=booking.teacher_id)
+    db.session.add(back_time)
+    db.session.delete(booking)
+    db.session.commit()
+    return redirect('/list/')
 
 
 app.run('0.0.0.0', debug=False)

@@ -1,0 +1,51 @@
+{% extends 'base.html' %} {% block body %}
+
+  <main class="container mt-3 mb-5">
+    <section>
+    <h1 class="h1 text-center mx-auto mt-4 py-5"><strong>Очень занятые люди</strong></h1>
+
+    <div class="row">
+      <div class="col-12 col-lg-10 offset-lg-1 m-auto">
+
+        <table class="table">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Имя</th>
+      <th scope="col">Телефон</th>
+      <th scope="col">День</th>
+      <th scope="col">Время</th>
+      <th scope="col">Учитель</th>
+      <th scope="col"></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for book in books %}
+    <tr>
+      <th scope="row">{{ book[0] }}</th>
+      <td>{{ book[1] }}</td>
+      <td>{{ book[2] }}</td>
+      <td>{{ book[3] }}</td>
+      <td>{{ book[4] }}</td>
+      <td>{{ book[5] }}</td>
+      <td><a href="/list/delete/{{ book[0] }}"/ class="button">Удалить</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+      </div>
+    </div>
+
+
+    <h2 class="text-center mt-5 mb-3">Не нашли своего репетитора?</h2>
+    <p class="text-center mb-4">Расскажите, кто вам нужен и мы подберем его сами</p>
+    <div class="text-center pb-5">
+        <a href="/request/" class="btn btn-primary">Заказать подбор</a>
+    </div>
+
+
+
+  </main>
+
+{% endblock %}

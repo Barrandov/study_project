@@ -1,18 +1,1 @@
-[
-  {
-    "id": 0,
-    "name": "1",
-    "phone": "2",
-    "teacher_id": "0",
-    "day": "mon",
-    "timing": "10:00"
-  },
-  {
-    "id": 1,
-    "name": "ww",
-    "phone": "1234567890",
-    "teacher_id": "0",
-    "day": "mon",
-    "timing": "12:00"
-  }
-]
+[{"id": 0, "name": "1", "phone": "2", "teacher_id": "0", "day": "mon", "timing": "10:00"}, {"id": 1, "name": "ww", "phone": "1234567890", "teacher_id": "0", "day": "mon", "timing": "12:00"}, {"id": 2, "name": "ууу", "phone": "1234567890", "teacher_id": "1", "day": "mon", "timing": "10:00"}]

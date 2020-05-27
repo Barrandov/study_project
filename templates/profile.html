@@ -14,7 +14,7 @@
 
                 {% for badge in teacher.goals %}
                   <span class="badge badge-secondary mr-2" style="padding: 5px">
-                {{ goals[badge] }}
+                {{ badge.goal_text }}
                   </span>
                 {% endfor %}
 
@@ -28,16 +28,15 @@
 
               {% for key, value in teacher_slots.items() %}
                 <h6 class="mt-4">{{ week_days[key] }}</h6>
-              {% if True not in value.values() %}
+
+              {% if value | length == 0 %}
                 <p>Нет свободных уроков</p>
               {% else %}
 
-              {% for slot, avb in value.items() %}
-              {% if avb %}
+              {% for slot in value | sort %}
                 <a href="/booking/{{teacher.id}}/{{ key }}/{{ slot | replace(':','-') }}"
                    class="btn btn-outline-success mr-2"
                    style="margin-top: 8px">{{ slot }} свободно</a>
-              {% endif %}
               {% endfor %}
               {% endif %}
               {% endfor %}
