@@ -9,7 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 from data import goals, week_days
 
-
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///stepik.db"
@@ -17,13 +16,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+
 @app.errorhandler(404)
 def render_not_found(error): return "Ничего не нашлось! Вот неудача, отправляйтесь на главную!"
 
+
 teacher_goals_association = db.Table(
- 'teacher_goals',
- db.Column('teacher_id', db.Integer, db.ForeignKey('teachers.ID')),
- db.Column('goal_id', db.Integer, db.ForeignKey('goals.ID')),
+    'teacher_goals',
+    db.Column('teacher_id', db.Integer, db.ForeignKey('teachers.ID')),
+    db.Column('goal_id', db.Integer, db.ForeignKey('goals.ID')),
 )
 
 
@@ -35,7 +36,7 @@ class Teachers(db.Model):
     rating = db.Column('Rating', db.Float)
     picture = db.Column('Picture', db.String)
     price = db.Column('Price', db.Integer)
-    schedule = db.relationship('Schedule',  backref='teacher')
+    schedule = db.relationship('Schedule', backref='teacher')
     goals = db.relationship('Goals', secondary=teacher_goals_association, backref='teacher')
     booking = db.relationship('Booking', backref='teacher')
 
@@ -103,7 +104,7 @@ def convert():
 
         for data in all_data:
 
-            t = db.session.query(Teachers).filter(Teachers.name==data['name']).first()
+            t = db.session.query(Teachers).filter(Teachers.name == data['name']).first()
             for i in data['goals']:
                 get_slug = db.session.query(Goals).filter(Goals.goal_slug == i).first()
                 t.goals.append(get_slug)
@@ -111,7 +112,7 @@ def convert():
         db.session.commit()
 
 
-#convert()
+# convert()
 
 
 class RequestForm(FlaskForm):
@@ -172,22 +173,17 @@ def profiles_render(id):
                            week_days=week_days)
 
 
-@app.route('/request/')
+@app.route('/request/', methods=['GET', 'POST'])
 def request_render():
     form = RequestForm()
-    return render_template('request.html', form=form)
 
-
-@app.route('/request_done/', methods=['GET', 'POST'])
-def request_done_render():
     if request.method == 'POST':
-        form = RequestForm()
-
         request_data = {'name': form.name.data,
                         'phone': form.phone.data,
                         'goal': form.goals.data,
                         'timing': form.timing.data
                         }
+
         request_db = RequestLesson(name=request_data['name'],
                                    phone=request_data['phone'],
                                    goal=request_data['goal'],
@@ -198,37 +194,14 @@ def request_done_render():
         db.session.commit()
 
         return render_template('request_done.html', request_data=request_data, goals=goals)
-    else:
-        return "Просто зашли посмотреть"
+
+    return render_template('request.html', form=form)
 
 
-@app.route('/booking/<int:id>/<day>/<time>/')
+@app.route('/booking/<int:id>/<day>/<time>/', methods=["POST", "GET"])
 def booking_render(id, day, time):
-
-    teacher_is_free = db.session.query(Schedule)\
-        .filter(Schedule.teacher_id == id).\
-        filter(Schedule.week_day == day).\
-        filter(Schedule.timing == time.replace('-', ':')).\
-        first()
-
-    teacher_id = db.session.query(Teachers).get(id)
-
-    if teacher_is_free:
-        form = BookingForm()
-        return render_template('booking.html',
-                               teacher=teacher_id,
-                               form=form,
-                               day=day,
-                               week_days=week_days,
-                               time=time.replace('-', ':'))
-
-    else:
-        return "В этом слоте занято"
-
-
-@app.route('/booking_done/', methods=["POST", "GET"])
-def booking_done_render():
     if request.method == "POST":
+
         form = BookingForm()
 
         booking_data = {'name': form.name.data,
@@ -237,6 +210,14 @@ def booking_done_render():
                         'day': form.day_hide.data,
                         'timing': form.timing_hide.data
                         }
+        check_user = db.session.query(Booking).filter(Booking.name == booking_data['name'],
+                                                      Booking.phone == booking_data['phone'],
+                                                      Booking.teacher_id == booking_data['teacher_id'],
+                                                      Booking.week_day == booking_data['day'],
+                                                      Booking.timing == booking_data['timing']).first()
+
+        if check_user:
+            return 'Повторный запрос в БД!'
 
         teacher_time_delete = db.session.query(Schedule) \
             .filter(Schedule.teacher_id == booking_data['teacher_id']). \
@@ -256,8 +237,26 @@ def booking_done_render():
         db.session.commit()
 
         return render_template('booking_done.html', booking_data=booking_data, week_days=week_days)
+    # else
+    teacher_is_free = db.session.query(Schedule) \
+        .filter(Schedule.teacher_id == id). \
+        filter(Schedule.week_day == day). \
+        filter(Schedule.timing == time.replace('-', ':')). \
+        first()
 
-    return "Нет тут ничего"
+    teacher_id = db.session.query(Teachers).get(id)
+
+    if teacher_is_free:
+        form = BookingForm()
+        return render_template('booking.html',
+                               teacher=teacher_id,
+                               form=form,
+                               day=day,
+                               week_days=week_days,
+                               time=time.replace('-', ':'))
+
+    else:
+        return "В этом слоте занято"
 
 
 @app.route('/list/')
