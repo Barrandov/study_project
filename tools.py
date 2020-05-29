@@ -42,4 +42,4 @@ def convert():
         db.session.commit()
 
 
-convert()
+

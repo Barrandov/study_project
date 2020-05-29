@@ -5,13 +5,14 @@ from flask_migrate import Migrate
 from dbmodels import *
 from forms import RequestForm, BookingForm
 
+
 goals = {"travel": "⛱ Для путешествий", "study": "🏫 Для учебы", "work": "🏢 Для работы", "relocate": "🚜 Для переезда", "coding": "🙈 Для кодинга"}
 week_days = {"mon": "Понедельник", "tue": "Вторник", "wed": "Среда", "thu": "Четверг", "fri": "Пятница", "sat": "Суббота", "sun": "Воскресенье"}
 
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'postgresql://postgres:agent12345@127.0.0.1:5432/stepik'
+app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://mksythtjaakakt:50df2a2af75de793188d60119143d2b96960d2e4479f2dd818ca61e34e3773fe@ec2-54-217-236-206.eu-west-1.compute.amazonaws.com:5432/dc3rd3cft7jf89'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
@@ -162,4 +163,5 @@ def list_delete_render(id):
     return redirect('/list/')
 
 
-app.run('0.0.0.0', debug=False)
+if __name__ == '__main__':
+    app.run()
