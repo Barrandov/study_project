@@ -1,141 +1,25 @@
-import json
-import random
+import os
 
 from flask import Flask, render_template, request, redirect
-from flask_wtf import FlaskForm
-from wtforms import StringField, RadioField, HiddenField
-from wtforms.validators import InputRequired, Length
-from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from dbmodels import *
+from forms import RequestForm, BookingForm
 
-from data import goals, week_days
+goals = {"travel": "⛱ Для путешествий", "study": "🏫 Для учебы", "work": "🏢 Для работы", "relocate": "🚜 Для переезда", "coding": "🙈 Для кодинга"}
+week_days = {"mon": "Понедельник", "tue": "Вторник", "wed": "Среда", "thu": "Четверг", "fri": "Пятница", "sat": "Суббота", "sun": "Воскресенье"}
 
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///stepik.db"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_STEPIK")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+db.init_app(app)
+migrate = Migrate(app, db)
 
 
 @app.errorhandler(404)
 def render_not_found(error): return "Ничего не нашлось! Вот неудача, отправляйтесь на главную!"
-
-
-teacher_goals_association = db.Table(
-    'teacher_goals',
-    db.Column('teacher_id', db.Integer, db.ForeignKey('teachers.ID')),
-    db.Column('goal_id', db.Integer, db.ForeignKey('goals.ID')),
-)
-
-
-class Teachers(db.Model):
-    __tablename__ = 'teachers'
-    id = db.Column('ID', db.Integer, primary_key=True)
-    name = db.Column('Name', db.String)
-    about = db.Column('About', db.String)
-    rating = db.Column('Rating', db.Float)
-    picture = db.Column('Picture', db.String)
-    price = db.Column('Price', db.Integer)
-    schedule = db.relationship('Schedule', backref='teacher')
-    goals = db.relationship('Goals', secondary=teacher_goals_association, backref='teacher')
-    booking = db.relationship('Booking', backref='teacher')
-
-
-class Goals(db.Model):
-    __tablename__ = 'goals'
-    id = db.Column('ID', db.Integer, primary_key=True)
-    goal_slug = db.Column('Goal slug', db.String)
-    goal_text = db.Column('Goal text', db.String)
-
-
-class Schedule(db.Model):
-    __tablename__ = 'schedule'
-    id = db.Column('ID', db.Integer, primary_key=True)
-    week_day = db.Column('Week Day', db.String)
-    timing = db.Column('Timing', db.String)
-    teacher_id = db.Column('Teacher ID', db.Integer, db.ForeignKey('teachers.ID', ondelete='CASCADE'))
-
-
-class Booking(db.Model):
-    __tablename__ = 'booking'
-    id = db.Column('ID', db.Integer, primary_key=True)
-    name = db.Column('Name', db.String)
-    phone = db.Column('Phone', db.String)
-    week_day = db.Column('Week Day', db.String)
-    timing = db.Column('Timing', db.String)
-    teacher_id = db.Column('Teacher ID', db.Integer, db.ForeignKey('teachers.ID', ondelete='CASCADE'))
-
-
-class RequestLesson(db.Model):
-    id = db.Column('ID', db.Integer, primary_key=True)
-    name = db.Column('Name', db.String)
-    phone = db.Column('Phone', db.String)
-    goal = db.Column('Goal', db.String)
-    timing = db.Column('Timing', db.String)
-
-
-def convert():
-    for k, v in goals.items():
-        goal_add = Goals(goal_slug=k, goal_text=v)
-        db.session.add(goal_add)
-
-    with open('data.json', 'r') as zapis:
-        all_data = json.load(zapis)
-
-    for data in all_data:
-        print(data['name'])
-        teacher_add = Teachers(name=data['name'],
-                               about=data['about'],
-                               rating=data['rating'],
-                               picture=data['picture'],
-                               price=data['price']
-                               )
-
-        db.session.add(teacher_add)
-
-        for week, result in data['free'].items():
-            for k, v in result.items():
-                if v:
-                    sh_add = Schedule(week_day=week, timing=k, teacher=teacher_add)
-                    db.session.add(sh_add)
-    else:
-        db.create_all()
-        db.session.commit()
-
-        for data in all_data:
-
-            t = db.session.query(Teachers).filter(Teachers.name == data['name']).first()
-            for i in data['goals']:
-                get_slug = db.session.query(Goals).filter(Goals.goal_slug == i).first()
-                t.goals.append(get_slug)
-
-        db.session.commit()
-
-
-# convert()
-
-
-class RequestForm(FlaskForm):
-    name = StringField('Вас зовут', [InputRequired()])
-    phone = StringField('Ваш телефон', [Length(min=5)])
-    goals = RadioField('goals', choices=[("travel", "⛱ Для путешествий"),
-                                         ("study", "🏫 Для учебы"),
-                                         ("work", "🏢 Для работы"),
-                                         ("relocate", "🚜 Для переезда"),
-                                         ("coding", "🙈 Для кодинга")],
-                       default="travel")
-
-    timing = RadioField('timing', choices=[("1-2", "1 - 2 часа в неделю"),
-                                           ("3-5", "3-5 часов в неделю"),
-                                           ("5-7", "5-7 часов в неделю"),
-                                           ("7-10", "7-10 часов в неделю")],
-                        default="1-2")
-
-
-class BookingForm(RequestForm):
-    teacher_id = HiddenField('teacher_id')
-    day_hide = HiddenField('day')
-    timing_hide = HiddenField('timing')
 
 
 @app.route('/')
