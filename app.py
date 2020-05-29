@@ -12,7 +12,7 @@ week_days = {"mon": "Понедельник", "tue": "Вторник", "wed": "�
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'postgres://mksythtjaakakt:50df2a2af75de793188d60119143d2b96960d2e4479f2dd818ca61e34e3773fe@ec2-54-217-236-206.eu-west-1.compute.amazonaws.com:5432/dc3rd3cft7jf89'
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
