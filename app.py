@@ -11,7 +11,7 @@ week_days = {"mon": "Понедельник", "tue": "Вторник", "wed": "�
 app = Flask(__name__)
 app.secret_key = "4iko42k24pk"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_STEPIK")
+app.config["SQLALCHEMY_DATABASE_URI"] = 'postgresql://postgres:agent12345@127.0.0.1:5432/stepik'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)

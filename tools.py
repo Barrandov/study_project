@@ -1,8 +1,8 @@
 import json
 
-from project.dbmodels import *
-from project.app import goals
+from dbmodels import *
 
+goals = {"travel": "⛱ Для путешествий", "study": "🏫 Для учебы", "work": "🏢 Для работы", "relocate": "🚜 Для переезда", "coding": "🙈 Для кодинга"}
 
 def convert():
     for k, v in goals.items():
@@ -42,5 +42,4 @@ def convert():
         db.session.commit()
 
 
-
-
+convert()
